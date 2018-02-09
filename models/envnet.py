@@ -22,20 +22,19 @@ class EnvNet(chainer.Chain):
             fc6=L.Linear(4096, 4096),
             fc7=L.Linear(4096, n_classes)
         )
-        self.train = True
 
     def __call__(self, x):
-        h = self.conv1(x, self.train)
-        h = self.conv2(h, self.train)
+        h = self.conv1(x)
+        h = self.conv2(h)
         h = F.max_pooling_2d(h, (1, 160))
         h = F.swapaxes(h, 1, 2)
 
-        h = self.conv3(h, self.train)
+        h = self.conv3(h)
         h = F.max_pooling_2d(h, 3)
-        h = self.conv4(h, self.train)
+        h = self.conv4(h)
         h = F.max_pooling_2d(h, (1, 3))
 
-        h = F.dropout(F.relu(self.fc5(h)), train=self.train)
-        h = F.dropout(F.relu(self.fc6(h)), train=self.train)
+        h = F.dropout(F.relu(self.fc5(h)))
+        h = F.dropout(F.relu(self.fc6(h)))
 
         return self.fc7(h)

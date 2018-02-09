@@ -28,28 +28,27 @@ class EnvNetv2(chainer.Chain):
             fc12=L.Linear(4096, 4096),
             fc13=L.Linear(4096, n_classes)
         )
-        self.train = True
 
     def __call__(self, x):
-        h = self.conv1(x, self.train)
-        h = self.conv2(h, self.train)
+        h = self.conv1(x)
+        h = self.conv2(h)
         h = F.max_pooling_2d(h, (1, 64))
         h = F.swapaxes(h, 1, 2)
 
-        h = self.conv3(h, self.train)
-        h = self.conv4(h, self.train)
+        h = self.conv3(h)
+        h = self.conv4(h)
         h = F.max_pooling_2d(h, (5, 3))
-        h = self.conv5(h, self.train)
-        h = self.conv6(h, self.train)
+        h = self.conv5(h)
+        h = self.conv6(h)
         h = F.max_pooling_2d(h, (1, 2))
-        h = self.conv7(h, self.train)
-        h = self.conv8(h, self.train)
+        h = self.conv7(h)
+        h = self.conv8(h)
         h = F.max_pooling_2d(h, (1, 2))
-        h = self.conv9(h, self.train)
-        h = self.conv10(h, self.train)
+        h = self.conv9(h)
+        h = self.conv10(h)
         h = F.max_pooling_2d(h, (1, 2))
 
-        h = F.dropout(F.relu(self.fc11(h)), train=self.train)
-        h = F.dropout(F.relu(self.fc12(h)), train=self.train)
+        h = F.dropout(F.relu(self.fc11(h)))
+        h = F.dropout(F.relu(self.fc12(h)))
 
         return self.fc13(h)

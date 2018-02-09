@@ -2,7 +2,7 @@ import os
 import numpy as np
 import random
 import chainer
-
+from tqdm import tqdm
 import utils as U
 
 
@@ -78,9 +78,10 @@ def setup(opt, split):
     train_labels = []
     val_sounds = []
     val_labels = []
-    for i in range(1, opt.nFolds + 1):
+    for i in tqdm(range(1, opt.nFolds + 1)):
         sounds = dataset['fold{}'.format(i)].item()['sounds']
         labels = dataset['fold{}'.format(i)].item()['labels']
+        labels = [int(x) for x in labels]
         if i == split:
             val_sounds.extend(sounds)
             val_labels.extend(labels)

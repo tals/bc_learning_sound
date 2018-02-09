@@ -4,7 +4,7 @@ import chainer
 from chainer import cuda
 import chainer.functions as F
 import time
-
+from tqdm import tqdm
 import utils
 
 
@@ -22,11 +22,11 @@ class Trainer:
         self.optimizer.lr = self.lr_schedule(epoch)
         train_loss = 0
         train_acc = 0
-        for i, batch in enumerate(self.train_iter):
+        for i, batch in enumerate(tqdm(self.train_iter)):
             x_array, t_array = chainer.dataset.concat_examples(batch)
             x = chainer.Variable(cuda.to_gpu(x_array[:, None, None, :]))
             t = chainer.Variable(cuda.to_gpu(t_array))
-            self.optimizer.zero_grads()
+            self.model.cleargrads()
             y = self.model(x)
             if self.opt.BC:
                 loss = utils.kl_divergence(y, t)
@@ -57,23 +57,22 @@ class Trainer:
         return train_loss, train_top1
 
     def val(self):
-        self.model.train = False
-        val_acc = 0
-        for batch in self.val_iter:
-            x_array, t_array = chainer.dataset.concat_examples(batch)
-            if self.opt.nCrops > 1:
-                x_array = x_array.reshape((x_array.shape[0] * self.opt.nCrops, x_array.shape[2]))
-            x = chainer.Variable(cuda.to_gpu(x_array[:, None, None, :]), volatile=True)
-            t = chainer.Variable(cuda.to_gpu(t_array), volatile=True)
-            y = F.softmax(self.model(x))
-            y = F.reshape(y, (y.shape[0] // self.opt.nCrops, self.opt.nCrops, y.shape[1]))
-            y = F.mean(y, axis=1)
-            acc = F.accuracy(y, t)
-            val_acc += float(acc.data) * len(t.data)
+        with chainer.using_config('train', False), chainer.using_config('enable_backprop', False), chainer.using_config('volatile', True):
+            val_acc = 0
+            for batch in tqdm(self.val_iter):
+                x_array, t_array = chainer.dataset.concat_examples(batch)
+                if self.opt.nCrops > 1:
+                    x_array = x_array.reshape((x_array.shape[0] * self.opt.nCrops, x_array.shape[2]))
+                x = chainer.Variable(cuda.to_gpu(x_array[:, None, None, :]))
+                t = chainer.Variable(cuda.to_gpu(t_array))
+                y = F.softmax(self.model(x))
+                y = F.reshape(y, (y.shape[0] // self.opt.nCrops, self.opt.nCrops, y.shape[1]))
+                y = F.mean(y, axis=1)
+                acc = F.accuracy(y, t)
+                val_acc += float(acc.data) * len(t.data)
 
-        self.val_iter.reset()
-        self.model.train = True
-        val_top1 = 100 * (1 - val_acc / len(self.val_iter.dataset))
+            self.val_iter.reset()
+            val_top1 = 100 * (1 - val_acc / len(self.val_iter.dataset))
 
         return val_top1
 
